@@ -1,0 +1,112 @@
+{#-
+# Copyright 2019 Whitestack, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: esousa@whitestack.com or glavado@whitestack.com
+-#}
+{%- if license is defined -%}
+# Copyright {{ license.year }} {{ license.company }}
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: {{ license.email }}
+{%- endif %}
+
+import fnmatch
+import os
+import yaml
+import subprocess
+
+from charmhelpers.core.hookenv import config
+
+
+def create_hosts(cfg, hosts):
+    inventory_path = '/etc/ansible/hosts'
+
+    with open(inventory_path, 'w') as f:
+        f.write('[{}]\n'.format(hosts))
+        h1 = '{0} ansible_connection=ssh ansible_ssh_user={1} ansible_ssh_pass={2} ' \
+             'ansible_ssh_private_key_file=~/.ssh/id_juju_sshproxy ' \
+             'ansible_python_interpreter=/usr/bin/python3\n'.format(cfg['ssh-hostname'], cfg['ssh-username'],
+                                                                    cfg['ssh-password'])
+        f.write(h1)
+
+
+def create_ansible_cfg():
+    ansible_config_path = '/etc/ansible/ansible.cfg'
+
+    with open(ansible_config_path, 'w') as f:
+        f.write('[defaults]\n')
+        f.write('host_key_checking = False\n')
+        # logs playbook execution attempts to the specified path
+        f.write('log_path = /var/log/ansible.log\n')
+
+        f.write('[ssh_connection]\n')
+        f.write('control_path=%(directory)s/%%h-%%r\n')
+        f.write('control_path_dir=~/.ansible/cp\n')
+
+
+# Function to find the playbook path
+def find(pattern, path):
+    result = ''
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                result = os.path.join(root, name)
+    return result
+
+
+def execute_playbook(playbook_file, vars_dict=None):
+    playbook_path = find(playbook_file, '/var/lib/juju/agents/')
+
+    cfg = config()
+
+    with open(playbook_path, 'r') as f:
+        playbook_data = yaml.load(f)
+
+    hosts = 'all'
+    if 'hosts' in playbook_data[0].keys() and playbook_data[0]['hosts']:
+        hosts = playbook_data[0]['hosts']
+
+    create_ansible_cfg()
+    create_hosts(cfg, hosts)
+
+    call = 'ansible-playbook %s ' % playbook_path
+
+    if vars_dict and isinstance(vars_dict, dict) and len(vars_dict) > 0:
+        call += '--extra-vars '
+
+        string_var = ''
+        for v in vars_dict.items():
+            string_var += '%s=%s ' % v
+
+        string_var = string_var.strip()
+        call += '"%s"' % string_var
+
+    call = call.strip()
+    result = subprocess.check_output(call, shell=True)
+
+    return result

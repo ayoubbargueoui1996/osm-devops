@@ -1,0 +1,46 @@
+# Copyright 2019 TATA ELXSI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Author: VIJAY NAG B S (vijaynag.bs@tataelxsi.co.in)
+
+################################################################
+# Please execute this command prior to deploying this yaml file.
+# __tag__ ,  __testName__ and __tempdir__ are placeholders for osm rel, testname and tempdir respectively.
+#
+# $ sed "s|__tag__|$TAG|; s|__testName__|$TEST|; s|__tempdir__|$tempdir|" osmclient-systest.yaml
+#
+############################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: systest-client
+  labels:
+    ciStage: stage3
+spec:
+  containers:
+    - name: osm-client
+      image: opensourcemano/osmclient:__tag__
+      envFrom:
+       - secretRef:
+           name: systest-secret
+      command: [ "make", "-C", "/usr/share/osm-devops/systest", "__testName__" ]
+      volumeMounts:
+        - name: temp-dir
+          mountPath: /usr/share/osm-devops/systest/reports
+  restartPolicy: OnFailure
+  volumes:
+    - name: temp-dir
+      hostPath:
+        path: __tempdir__

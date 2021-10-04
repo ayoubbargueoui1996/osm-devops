@@ -1,0 +1,271 @@
+##
+# Copyright 2019 ETSI
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+##
+
+########################################################################
+
+version: '3'
+volumes:
+  ro:
+  ro_db:
+  mongo_db:
+  mon_db:
+  pol_db:
+  osm_packages:
+  prom_db:
+networks:
+  netOSM:
+    external:
+      name: ${OSM_NETWORK:-netosm}
+    #driver: overlay
+    #driver_opts:
+    #  com.docker.network.driver.mtu: "1446"
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper:${ZOOKEEPER_TAG:-latest}
+#    ports:
+#      - "2181:2181"
+    networks:
+      - netOSM
+    healthcheck:
+      test: echo ruok | nc -w 2 localhost 2181
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+  kafka:
+    image: wurstmeister/kafka:${KAFKA_TAG:-latest}
+    ports:
+      - "9092"
+    networks:
+      - netOSM
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LOG_RETENTION_HOURS: 24
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://:9092
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: echo ruok | nc -w 2 zookeeper 2181
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+    #depends_on:
+    #  - zookeeper
+  mongo:
+    image: mongo
+#    ports:
+#      - "27017:27017"
+    networks:
+      - netOSM
+    volumes:
+      - mongo_db:/data/db
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_TAG:-latest}
+    hostname: prometheus
+    ports:
+      - "${OSM_PROM_PORTS:-9091:9090}"
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prom_db:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-lifecycle'
+    networks:
+      - netOSM
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+  prometheus-cadvisor:
+    image: google/cadvisor:${PROMETHEUS_CADVISOR_TAG:-latest}
+    ports:
+      - "${OSM_PROM_CADVISOR_PORTS:-8080:8080}"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - netOSM
+  keystone:
+    image: ${DOCKER_USER:-opensourcemano}/keystone:${TAG:-9}
+    networks:
+      - netOSM
+    environment:
+      DB_HOST: mysql
+    env_file:
+      - ./keystone.env
+    ports:
+      - "${OSM_KEYSTONE_PORTS:-5000:5000}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+  nbi:
+    image: ${DOCKER_USER:-opensourcemano}/nbi:${TAG:-9}
+    networks:
+      - netOSM
+    volumes:
+      - osm_packages:/app/storage
+    environment:
+      OSMNBI_DATABASE_HOST: mongo
+      OSMNBI_MESSAGE_HOST: kafka
+    env_file:
+      - ./nbi.env
+    ports:
+      - "${OSM_NBI_PORTS:-9999:9999}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+    #depends_on:
+    #  - kafka
+    #  - mongo
+  lcm:
+    image: ${DOCKER_USER:-opensourcemano}/lcm:${TAG:-9}
+    networks:
+      - netOSM
+    volumes:
+      - osm_packages:/app/storage
+    environment:
+      OSMLCM_RO_HOST: ro
+      OSMLCM_RO_PORT: "9090"
+      OSMLCM_DATABASE_HOST: mongo
+      OSMLCM_MESSAGE_HOST: kafka
+    env_file:
+      - ./lcm.env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+    #depends_on:
+    #  - kafka
+    #  - mongo
+    #  - ro
+  mysql:
+    image: mysql:5
+    networks:
+      netOSM:
+        aliases:
+          - ro-db
+    volumes:
+      - ro_db:/var/lib/mysql
+    env_file:
+      - ./ro-db.env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+#    ports:
+#      - "3306:3306"
+  ro:
+    image: ${DOCKER_USER:-opensourcemano}/ro:${TAG:-9}
+    networks:
+      - netOSM
+    environment:
+      RO_DB_HOST: mysql
+      OSMRO_DATABASE_HOST: mongo
+      OSMRO_MESSAGE_HOST: kafka
+    env_file:
+      - ./ro.env
+    #depends_on:
+    #  - mongo
+    #  - kafka
+    ports:
+      - "${OSM_RO_PORTS:-9090:9090}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+  mon:
+    image: ${DOCKER_USER:-opensourcemano}/mon:${TAG:-9}
+    networks:
+      - netOSM
+    volumes:
+      - mon_db:/app/database
+    environment:
+      OSMMON_MESSAGE_HOST: kafka
+      OSMMON_MESSAGE_PORT: 9092
+    env_file:
+      - ./mon.env
+    ports:
+      - "${OSM_MON_PORTS:-8662:8662}"
+    #depends_on:
+    #  - kafka
+    logging:
+        driver: "json-file"
+        options:
+            max-file: 5
+            max-size: 10m
+  pol:
+    image: ${DOCKER_USER:-opensourcemano}/pol:${TAG:-9}
+    networks:
+      - netOSM
+    volumes:
+      - pol_db:/app/database
+    environment:
+      OSMPOL_MESSAGE_HOST: kafka
+      OSMPOL_MESSAGE_PORT: 9092
+    env_file:
+      - ./pol.env
+    #depends_on:
+    #  - kafka
+    #  - mon
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 5
+        max-size: 10m
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - ./grafana/dashboards-osm.yml:/etc/grafana/provisioning/dashboards/dashboards-osm.yml
+      - ./grafana/osm-sample-dashboard.json:/etc/grafana/provisioning/dashboards/osm-sample-dashboard.json
+      - ./grafana/osm-system-dashboard.json:/etc/grafana/provisioning/dashboards/osm-system-dashboard.json
+      - ./grafana/datasource-prometheus.yml:/etc/grafana/provisioning/datasources/datasource-prometheus.yml
+    hostname: grafana
+    ports:
+      - "${OSM_GRAFANA_PORTS:-3000:3000}"
+    networks:
+      - netOSM
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+

@@ -1,0 +1,76 @@
+# Copyright 2020 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+options:
+  vca_host:
+    type: string
+    description: "The VCA host."
+    default: "admin"
+  vca_port:
+    type: int
+    description: "The VCA port."
+    default: 17070
+  vca_user:
+    type: string
+    description: "The VCA user name."
+    default: "admin"
+  vca_password:
+    type: string
+    description: "The VCA user password."
+    default: "secret"
+  vca_pubkey:
+    type: string
+    description: "The VCA public key."
+    default: "secret"
+  vca_cacert:
+    type: string
+    description: "The VCA cacert."
+    default: ""
+  vca_apiproxy:
+    type: string
+    description: "The VCA api proxy (native charms)"
+    default: ""
+  vca_cloud:
+    type: string
+    description: "The VCA lxd cloud name"
+    default: "localhost"
+  vca_k8s_cloud:
+    type: string
+    description: "The VCA K8s cloud name"
+    default: "k8scloud"
+  advertised-hostname:
+    description: LCM Hostname
+    type: string
+    default: "lcm-k8s"
+  use_external_vca:
+    description: |
+      Boolean to deside whether LCM should wait
+      for an external VCA or not (using osm-vca interface)
+    type: boolean
+    default: false
+  DATABASE_COMMONKEY:
+    description: Database COMMONKEY
+    type: string
+    default: osm
+  image:
+    type: string
+    description: OCI image
+    default: opensourcemano/lcm:latest
+  image_username:
+    description: Docker repository username
+    type: string
+    default: ""
+  image_password:
+    description: Docker repository password
+    type: string
+    default: ""

@@ -1,0 +1,38 @@
+vnfd-catalog:
+    vnfd:
+    -   connection-point:
+        -   name: eth0
+
+        description: Simple VNF example with a DNS forwarder
+        id: dns_forwarder
+        logo: dns.jpg
+        mgmt-interface:
+            cp: eth0
+        name: dns_forwarder
+        service-function-chain: UNAWARE
+        short-name: dns_forwarder
+        vdu:
+        -   count: '1'
+            description: dns_forwarder-VM
+            interface:
+            -   name: eth0
+                type: EXTERNAL
+                virtual-interface:
+                    bandwidth: '0'
+                    type: PARAVIRT
+                    vpci: 0000:00:0a.0
+                external-connection-point-ref: eth0
+            guest-epa:
+                cpu-pinning-policy: ANY
+            id: dns_forwarder-VM
+            image: ubuntu/images/hvm-ssd/ubuntu-zesty-17.04-amd64-server-20170619.1
+            cloud-init-file: cloud_init.cfg
+            name: dns_forwarder-VM
+            supplemental-boot-data:
+                boot-data-drive: 'false'
+            vm-flavor:
+                memory-mb: '1024'
+                storage-gb: '1'
+                vcpu-count: '1'
+        vendor: OSM
+        version: '1.0'

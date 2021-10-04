@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+
+##
+# Copyright 2019 ETSI
+#
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+##
+
+## Change log:
+# 1. Feature 7829: Mrityunjay Yadav, Jayant Madavi : MY00514913@techmahindra.com
+# 19-aug-2019 : changed vdu image from hackfest3-mgmt & hackfest-pktgen to ubuntu1604
+##
+
+vnfd:vnfd-catalog:
+    vnfd:
+    -   id: hackfest_epasriov-vnf
+        name: hackfest_epasriov-vnf
+        short-name: hackfest_epasriov-vnf
+        version: '1.0'
+        description: A VNF consisting of 2 VDUs with EPA capabilities connected to an internal VL, mgmtVM VDU with cloud-init
+        logo: osm.png
+        connection-point:
+        -   id: vnf-mgmt
+            name: vnf-mgmt
+            short-name: vnf-mgmt
+
+        -   id: vnf-data
+            name: vnf-data
+            short-name: vnf-data
+
+        mgmt-interface:
+            cp: vnf-mgmt
+        internal-vld:
+        -   id: internal
+            name: internal
+            short-name: internal
+            type: ELAN
+            internal-connection-point:
+            -   id-ref: mgmtVM-internal
+            -   id-ref: dataVM-internal
+        vdu:
+        -   id: mgmtVM
+            name: mgmtVM
+            image: ubuntu1604
+            count: '1'
+            vm-flavor:
+                vcpu-count: '1'
+                memory-mb: '1024'
+                storage-gb: '10'
+            guest-epa:
+                cpu-pinning-policy: DEDICATED
+                cpu-thread-pinning-policy: PREFER
+                mempage-size: LARGE
+                numa-node-policy:
+                    mem-policy: STRICT
+                    node-cnt: '1'
+                    node:
+                    -   id: '1'
+            interface:
+            -   name: mgmtVM-eth0
+                position: '1'
+                type: EXTERNAL
+                virtual-interface:
+                    type: PARAVIRT
+                external-connection-point-ref: vnf-mgmt
+            -   name: mgmtVM-eth1
+                position: '2'
+                type: INTERNAL
+                virtual-interface:
+                    type: PARAVIRT
+                internal-connection-point-ref: mgmtVM-internal
+            internal-connection-point:
+            -   id: mgmtVM-internal
+                name: mgmtVM-internal
+                short-name: mgmtVM-internal
+
+            cloud-init-file: cloud-config.txt
+        -   id: dataVM
+            name: dataVM
+            image: ubuntu1604
+            count: '1'
+            vm-flavor:
+                vcpu-count: '8'
+                memory-mb: '4096'
+                storage-gb: '10'
+            guest-epa:
+                cpu-pinning-policy: DEDICATED
+                cpu-thread-pinning-policy: PREFER
+                mempage-size: LARGE
+                numa-node-policy:
+                    mem-policy: STRICT
+                    node-cnt: '1'
+                    node:
+                    -   id: '1'
+            interface:
+            -   name: eth0
+                position: '1'
+                type: INTERNAL
+                virtual-interface:
+                    type: PARAVIRT
+                internal-connection-point-ref: dataVM-internal
+            -   name: xe0
+                position: '2'
+                type: EXTERNAL
+                virtual-interface:
+                    type: SR-IOV
+                external-connection-point-ref: vnf-data
+            internal-connection-point:
+            -   id: dataVM-internal
+                name: dataVM-internal
+                short-name: dataVM-internal
+
+

@@ -1,0 +1,62 @@
+# Copyright 2020 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+version: 2
+containers:
+  - name: %(name)s
+    imageDetails:
+      imagePath: %(image)s
+      username: %(image_username)s
+      password: %(image_password)s
+    ports:
+    - containerPort: %(advertised-port)s
+      protocol: TCP
+    config:
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
+      OSMMON_MESSAGE_DRIVER: kafka
+      OSMMON_MESSAGE_HOST: %(kafka_host)s
+      OSMMON_MESSAGE_PORT: %(kafka_port)s
+
+      OSMMON_DATABASE_DRIVER: mongo
+      OSMMON_DATABASE_URI: %(mongo_uri)s
+
+      OSMMON_OPENSTACK_DEFAULT_GRANULARITY: %(OSMMON_OPENSTACK_DEFAULT_GRANULARITY)s
+      OSMMON_GLOBAL_REQUEST_TIMEOUT: %(OSMMON_GLOBAL_REQUEST_TIMEOUT)s
+      OSMMON_GLOBAL_LOGLEVEL: %(OSMMON_GLOBAL_LOGLEVEL)s
+      OSMMON_VCA_HOST: %(vca_host)s
+      OSMMON_VCA_USER: %(vca_user)s
+      OSMMON_VCA_SECRET: %(vca_password)s
+      OSMMON_VCA_CACERT: %(vca_cacert)s
+      OSMMON_DATABASE_COMMONKEY: %(OSMMON_DATABASE_COMMONKEY)s
+      OSMMON_COLLECTOR_INTERVAL: %(OSMMON_COLLECTOR_INTERVAL)s
+      OSMMON_EVALUATOR_INTERVAL: %(OSMMON_EVALUATOR_INTERVAL)s
+      OSMMON_PROMETHEUS_URL: http://%(prometheus_url)s
+      OSMMON_GRAFANA_URL: %(grafana_url)s
+      OSMMON_GRAFANA_USER: %(grafana_user)s
+      OSMMON_GRAFANA_PASSWORD: %(grafana_password)s
+    kubernetes:
+      readinessProbe:
+        tcpSocket:
+          port: %(advertised-port)s
+        periodSeconds: 10
+        timeoutSeconds: 5
+        successThreshold: 1
+        failureThreshold: 3
+      livenessProbe:
+        tcpSocket:
+          port: %(advertised-port)s
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        successThreshold: 1
+        failureThreshold: 3

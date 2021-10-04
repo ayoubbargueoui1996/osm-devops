@@ -1,0 +1,89 @@
+# Copyright 2020 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: legal@canonical.com
+#
+# To get in touch with the maintainers, please contact:
+# osm-charmers@lists.launchpad.net
+##
+
+options:
+  openstack_default_granularity:
+    description: Openstack default granularity
+    type: int
+    default: 300
+  global_request_timeout:
+    description: Global request timeout
+    type: int
+    default: 10
+  log_level:
+    description: Log level
+    type: string
+    default: INFO
+  database_commonkey:
+    description: Database common key
+    type: string
+    default: osm
+  mongodb_uri:
+    type: string
+    description: MongoDB URI (external database)
+  collector_interval:
+    description: Collector interval
+    type: int
+    default: 30
+  evaluator_interval:
+    description: Evaluator interval
+    type: int
+    default: 30
+  vca_host:
+    type: string
+    description: "The VCA host."
+    default: "admin"
+  vca_user:
+    type: string
+    description: "The VCA user name."
+    default: "admin"
+  vca_secret:
+    type: string
+    description: "The VCA user password."
+    default: "secret"
+  vca_cacert:
+    type: string
+    description: "The VCA cacert."
+    default: ""
+  grafana_url:
+    description: Grafana URL
+    type: string
+    default: http://grafana:3000
+  grafana_user:
+    description: Grafana user
+    type: string
+    default: admin
+  grafana_password:
+    description: Grafana password
+    type: string
+    default: admin
+  keystone_enabled:
+    description: MON will use Keystone backend
+    type: boolean
+    default: false
+  certificates:
+    type: string
+    description: |
+      comma-separated list of <name>:<content> certificates.
+      Where:
+        name: name of the file for the certificate
+        content: base64 content of the certificate
+      The path for the files is /certs.

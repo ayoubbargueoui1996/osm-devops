@@ -1,0 +1,51 @@
+# Copyright 2020 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+version: 2
+containers:
+  - name: %(name)s
+    imageDetails:
+      imagePath: %(image)s
+      username: %(image_username)s
+      password: %(image_password)s
+    ports:
+    # This is a fake port; lcm doesn't listen, since it's just reading
+    # and responding to the kafka bus. Fix this in post.
+    - containerPort: 80
+      protocol: TCP
+    config:
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
+      OSMPOL_MESSAGE_DRIVER: kafka
+      OSMPOL_MESSAGE_HOST: %(kafka_host)s
+      OSMPOL_MESSAGE_PORT: %(kafka_port)s
+
+      OSMPOL_DATABASE_DRIVER: mongo
+      OSMPOL_DATABASE_URI: %(mongo_uri)s
+
+      OSMPOL_GLOBAL_LOGLEVEL: %(log_level)s
+    # kubernetes:
+    # readinessProbe:
+    #   exec:
+    #     command: ["sh", "-c", "osm-pol-healthcheck || exit 1"]
+    #   periodSeconds: 10
+    #   timeoutSeconds: 5
+    #   successThreshold: 1
+    #   failureThreshold: 3
+    # livenessProbe:
+    #   exec:
+    #     command: ["sh", "-c", "osm-pol-healthcheck || exit 1"]
+    #   initialDelaySeconds: 45
+    #   periodSeconds: 10
+    #   timeoutSeconds: 5
+    #   successThreshold: 1
+    #   failureThreshold: 3

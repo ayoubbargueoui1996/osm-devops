@@ -1,0 +1,21 @@
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+echo "Please set your environment variables."
+# export OSM_HOSTNAME=<OSM_HOSTNAME>
+# export OS_CLOUD=<OS_CLOUD>
+# export VIM_TARGET=<VIM_TARGET>
+# export VIM_MGMT_NET=<VIM_MGMT_NET>
+# export PACKAGES_FOLDER=<PACKAGES_FOLDER=>
+# export ROBOT_DEVOPS_FOLDER=<ROBOT_DEVOPS_FOLDER>
+# export ROBOT_REPORT_FOLDER=<ROBOT_REPORT_FOLDER>
+# export K8S_CREDENTIALS=<KUBECONFIG.yaml>

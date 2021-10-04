@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+#
+#   Copyright 2017 RIFT.IO Inc
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+# Author(s): Jeremy Mordkoff
+# Creation Date: 26 April 2017
+#
+#
+
+# INSTALL.sh
+# install launchpad SO and all of its dependencies
+#
+
+HERE=$(realpath $(dirname $0))
+OSM_JENKINS=$(dirname $HERE)
+. $OSM_JENKINS/common/install_common
+
+# Defensive bash programming flags
+set -o errexit    # Exit on any error
+trap 'echo ERROR: Command failed: \"$BASH_COMMAND\"' ERR
+set -o nounset    # Expanding an unset variable is an error.  Variables must be
+                  # set before they can be used.
+
+###############################################################################
+# Set up repo and version
+PLATFORM_REPOSITORY=OSM3
+PLATFORM_VERSION=5.2.0.2.72254
+
+while getopts ":P:V:h" o; do
+    case "${o}" in
+        P)
+            PLATFORM_REPOSITORY=${OPTARG}
+            ;;
+        V)
+            PLATFORM_VERSION=${OPTARG}
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+function usage() {
+    echo
+    echo "NAME:"
+    echo "  $0"
+    echo
+    echo "SYNOPSIS:"
+    echo "  $0 -h|--help"
+    echo "  $0 -P <PLATFORM_REPOSITORY> -V <PLATFORM_VERSION>"
+    echo
+    echo "DESCRIPTION:"
+    echo "  Prepare current system to run SO and UI."
+    echo
+    echo "  PLATFORM_REPOSITORY (optional): name of the RIFT.ware repository."
+    echo "  PLATFORM_VERSION (optional): version of the platform packages to be installed."
+    echo
+}
+
+
+###############################################################################
+# Main block
+
+# enable the right repos
+echo "### INSTALLING RIFT platform ${PLATFORM_VERSION} from repository ${PLATFORM_REPOSITORY}"
+
+curl http://repos.riftio.com/public/xenial-riftware-public-key | apt-key add -
+curl -o /etc/apt/sources.list.d/rift.list http://buildtracker.riftio.com/repo_file/ub16/${PLATFORM_REPOSITORY}/
+
+# Make the Rift repo a higher priority to work around version conflicts.
+cat <<EOF > /etc/apt/preferences.d/rift
+Package: *
+Pin: origin repos.riftio.com
+Pin-Priority: 600
+EOF
+
+
+
+#######################
+# temp fix
+# this is normally done by mkcontainer, but the last line is missing
+# we can take this out when we update the RIFT platform
+
+cat <<EOF >>/etc/systemd/user.conf
+DefaultLimitNOFILE=65536
+DefaultLimitMSGQUEUE=8192000
+DefaultLimitNPROC=65536
+DefaultTasksMax=65536
+EOF
+cat <<EOF >>/etc/systemd/system.conf
+DefaultLimitNOFILE=65536
+DefaultLimitMSGQUEUE=8192000
+DefaultLimitNPROC=65536
+DefaultTasksMax=65536
+EOF
+systemctl daemon-reload
+
+##################################
+
+
+apt-get update
+
+# and install the tools
+apt remove -y tcpdump
+apt-get install -y --allow-downgrades rw.tools-container-tools=${PLATFORM_VERSION} rw.tools-scripts=${PLATFORM_VERSION} python
+/usr/rift/container_tools/mkcontainer --modes MANO-base,rw-platform --rw-version ${PLATFORM_VERSION}
+
+# now disable the RIFT OSM repo so that we'll get MANO from
+# the OSM repos
+rm -f /etc/apt/sources.list.d/rift.list
+
+apt-get update
+
+apt-get install -y \
+    rw.core.mano-mano \
+    rw.core.mano-rwcal-plugin-aws \
+    rw.core.mano-rwcal-plugin-cloudsim \
+    rw.core.mano-rwcal-plugin-cloudsimproxy \
+    rw.core.mano-rwcal-plugin-openmano-vimconnector \
+    rw.core.mano-rwcal-plugin-openstack \
+    rw.core.mano-rwcal-plugin-mock
+
+# Install libjuju
+apt-get install -y python3-pip python3-setuptools
+
+pip3 install juju==0.6.1

@@ -1,0 +1,49 @@
+# Copyright 2021 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: legal@canonical.com
+#
+# To get in touch with the maintainers, please contact:
+# osm-charmers@lists.launchpad.net
+##
+
+version: 2
+containers:
+  - name: %(name)s
+    image: %(docker_image)s
+    command:
+      - mongod
+      - "--bind_ip"
+      - "0.0.0.0"
+    ports:
+    - containerPort: %(advertised-port)s
+      protocol: TCP
+    config:
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
+    kubernetes:
+      readinessProbe:
+        tcpSocket:
+          port: %(advertised-port)s
+        timeoutSeconds: 5
+        periodSeconds: 5
+        initialDelaySeconds: 10
+      livenessProbe:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - mongo --port %(advertised-port)s --eval "rs.status()" | grep -vq "REMOVED"
+        initialDelaySeconds: 45
+        timeoutSeconds: 5

@@ -1,0 +1,69 @@
+# Copyright 2019 TATA ELXSI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
+# Author: Vijay Nag B S (vijaynag.bs@tataelxsi.co.in)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lcm
+  labels:
+    app: lcm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lcm
+  template:
+    metadata:
+      labels:
+        app: lcm
+    spec:
+      initContainers:
+       - name: kafka-ro-mongo-test
+         image: alpine:latest
+         command: ["sh", "-c", "until (nc -zvw1 kafka 9092 && nc -zvw1 ro 9090 && nc -zvw1 mongodb-k8s 27017 ); do sleep 3; done; exit 0"]
+      containers:
+      - name: lcm
+        image: opensourcemano/lcm:10
+        env:
+        - name: OSMLCM_RO_HOST
+          value: ro
+        - name: OSMLCM_DATABASE_URI
+          value: mongodb://mongodb-k8s:27017/?replicaSet=rs0
+        - name: OSMLCM_MESSAGE_HOST
+          value: kafka
+        - name: OSMLCM_STORAGE_DRIVER
+          value: mongo
+        - name: OSMLCM_STORAGE_PATH
+          value: /app/storage
+        - name: OSMLCM_STORAGE_COLLECTION
+          value: files
+        - name: OSMLCM_STORAGE_URI
+          value: mongodb://mongodb-k8s:27017/?replicaSet=rs0
+        envFrom:
+        - secretRef:
+           name: lcm-secret
+        volumeMounts:
+        - name: osm-packages
+          mountPath: /app/storage
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+      volumes:
+      - name: osm-packages
+        hostPath:
+         path: /var/lib/osm/osm_osm_packages/_data
+      - name: prometheus-config
+        hostPath:
+          path: /var/lib/osm/prometheus

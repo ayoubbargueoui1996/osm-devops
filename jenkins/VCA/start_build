@@ -1,0 +1,91 @@
+#!/bin/bash
+#   Copyright 2016 Telefónica Investigación y Desarrollo S.A.U.
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+# 20 Sep 2016 -- Gerardo Garcia -- adapted from template
+#
+
+HERE=$(realpath $(dirname $0))
+OSM_JENKINS=$(dirname $HERE)
+. $OSM_JENKINS/common/all_funcs
+
+INFO "Installing packages"
+add-apt-repository -y ppa:juju/stable
+apt-get update
+apt-get install -y juju lxd squid-deb-proxy
+
+echo 'streams.canonical' > /etc/squid-deb-proxy/mirror-dstdomain.acl.d/20-juju-streams
+service squid-deb-proxy reload
+
+INFO "Configuring LXD"
+# ZFS doesn't work inside a nested container. ZFS should be configured in the host LXD.
+lxd init --auto
+lxd waitready
+systemctl stop lxd-bridge
+systemctl --system daemon-reload
+cat <<EOF > /etc/default/lxd-bridge
+USE_LXD_BRIDGE="true"
+LXD_BRIDGE="lxdbr0"
+UPDATE_PROFILE="true"
+LXD_CONFILE=""
+LXD_DOMAIN="lxd"
+LXD_IPV4_ADDR="10.44.127.1"
+LXD_IPV4_NETMASK="255.255.255.0"
+LXD_IPV4_NETWORK="10.44.127.1/24"
+LXD_IPV4_DHCP_RANGE="10.44.127.2,10.44.127.254"
+LXD_IPV4_DHCP_MAX="252"
+LXD_IPV4_NAT="true"
+LXD_IPV6_ADDR=""
+LXD_IPV6_MASK=""
+LXD_IPV6_NETWORK=""
+LXD_IPV6_NAT="false"
+LXD_IPV6_PROXY="false"
+EOF
+
+systemctl enable lxd-bridge
+systemctl start lxd-bridge
+
+DEFAULT_INTERFACE=$(route -n | awk '$1~/^0.0.0.0/ {print $8}')
+DEFAULT_MTU=$( ip addr show $DEFAULT_INTERFACE | perl -ne 'if (/mtu\s(\d+)/) {print $1;}')
+
+INFO "Setting lxdbr0 MTU to $DEFAULT_MTU"
+
+# This sets the MTU of lxdbr0 on the host machine without the need to recycle
+# the interface or reboot the machine.
+ifconfig lxdbr0 mtu $DEFAULT_MTU
+
+# Setting the MTU in the default profile will be applied to every lxc container.
+# Existing containers will need to be restarted for the new MTU to take effect.
+# This will also persist the MTU change for the host's lxdbr0
+lxc profile device set default eth0 mtu $DEFAULT_MTU
+
+INFO "Pre-caching Ubuntu:16.04 image (this may take several minutes)..."
+
+# Setup a daily cron to update the cached image
+cp $HERE/update-lxd-image.sh /etc/cron.daily
+
+# Run it for the first time
+/etc/cron.daily/update-lxd-image.sh xenial
+
+INFO "Bootstrapping VCA"
+juju bootstrap localhost osm \
+--config default-series=xenial \
+--config enable-os-refresh-update=true \
+--config enable-os-upgrade=false \
+--config apt-http-proxy=http://10.44.127.1:8000
+
+RC=0
+
+INFO "done, RC=$RC"
+exit $RC

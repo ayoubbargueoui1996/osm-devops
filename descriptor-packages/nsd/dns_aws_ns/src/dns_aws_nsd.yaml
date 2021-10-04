@@ -1,0 +1,18 @@
+nsd:nsd-catalog:
+    nsd:
+    -   constituent-vnfd:
+        -   member-vnf-index: '1'
+            start-by-default: 'true'
+            vnfd-id-ref: dns_forwarder
+        id: dns_forwarder_ns
+        logo: dns.jpg
+        name: dns_forwarder_ns
+        vld:
+        -   id: management
+            mgmt-network: 'true'
+            name: management
+            vim-network-name: subnet-8a91b2c0
+            vnfd-connection-point-ref:
+            -   member-vnf-index-ref: '1'
+                vnfd-connection-point-ref: eth0
+                vnfd-id-ref: dns_forwarder

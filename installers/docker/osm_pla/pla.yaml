@@ -1,0 +1,52 @@
+# Copyright 2020 Arctos Labs Scandinavia AB
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pla
+  labels:
+    app: pla
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pla
+  template:
+    metadata:
+      labels:
+        app: pla
+    spec:
+      initContainers:
+       - name: kafka-mongo-test
+         image: alpine:latest
+         command: ["sh", "-c", "until (nc -zvw1 kafka 9092 && nc -zvw1 mongo 27017 ); do sleep 3; done; exit 0"]
+      containers:
+      - name: pla
+        image: opensourcemano/pla:10
+        env:
+        - name: OSMPLA_DATABASE_HOST
+          value: mongo
+        - name: OSMPLA_MESSAGE_HOST
+          value: kafka
+        - name: OSMPLA_DATABASE_URI
+          value: mongodb://mongodb-k8s:27017/?replicaSet=rs0
+        volumeMounts:
+        - name: osm-packages
+          mountPath: /app/storage
+      volumes:
+      - name: osm-packages
+        hostPath:
+         path: /var/lib/osm/osm_osm_packages/_data

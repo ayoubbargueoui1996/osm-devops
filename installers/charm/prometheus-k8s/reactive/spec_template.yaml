@@ -1,0 +1,68 @@
+# Copyright 2021 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: legal@canonical.com
+#
+# To get in touch with the maintainers, please contact:
+# osm-charmers@lists.launchpad.net
+##
+
+version: 2
+containers:
+  - name: "init-chown-data"
+    image: %(a_docker_image)s
+    imagePullPolicy: "IfNotPresent"
+    command: ["/bin/sh", "-c", "chown -R 65534:65534 /prometheus && while true; do sleep 86400; done"]
+  - name: %(name)s
+    image: %(docker_image)s
+    ports:
+    - containerPort: %(advertised-port)s
+      protocol: TCP
+    config:
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
+    kubernetes:
+      readinessProbe:
+        httpGet:
+          path: /-/ready
+          port: %(advertised-port)s
+        initialDelaySeconds: 10
+        timeoutSeconds: 30
+      livenessProbe:
+        httpGet:
+          path: /-/healthy
+          port: %(advertised-port)s
+        initialDelaySeconds: 30
+        timeoutSeconds: 30
+    command:
+      - "sh"
+      - "-c"
+      - "/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.console.libraries=/usr/share/prometheus/console_libraries --web.console.templates=/usr/share/prometheus/consoles --web.route-prefix=%(web-subpath)s --web.external-url=http://localhost:%(advertised-port)s%(web-subpath)s"
+    files:
+    - name: config
+      mountPath: /etc/prometheus
+      files:
+        prometheus.yml: |
+          global:
+            scrape_interval:     15s
+            evaluation_interval: 15s
+          alerting:
+            alertmanagers:
+            - static_configs:
+              - targets:
+          rule_files:
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+              - targets: ['%(default-target)s']

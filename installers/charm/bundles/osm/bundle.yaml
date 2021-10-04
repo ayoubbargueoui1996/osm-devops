@@ -1,0 +1,213 @@
+# Copyright 2020 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+description: |
+  **Single instance Charmed OSM**
+
+  Charmed OSM is an OSM distribution, developed and maintained by Canonical, which uses
+  Juju charms to simplify its deployments and operations. This bundle distribution refers
+  to the development stack for OSM and allows you to deploy a single instance OSM bundle
+  that is fast, reliable, and a complete solution with MicroStack and MicroK8s.
+
+  - Industry‐aligned and fully compliant with upstream
+  - Predictable release cadence and upgrade path
+  - Simplified deployments and operations
+  - Stable and secure
+  - Supported with Ubuntu Advantage
+  - Availability of managed services
+bundle: kubernetes
+applications:
+  zookeeper-k8s:
+    charm: "cs:~charmed-osm/zookeeper-k8s"
+    channel: "stable"
+    scale: 1
+    series: kubernetes
+    storage:
+      database: 100M
+    annotations:
+      gui-x: 0
+      gui-y: 500
+  mariadb-k8s:
+    charm: "cs:~charmed-osm/mariadb-k8s"
+    channel: "stable"
+    scale: 1
+    series: kubernetes
+    storage:
+      database: 50M
+    options:
+      password: manopw
+      root_password: osm4u
+      user: mano
+    annotations:
+      gui-x: -300
+      gui-y: -250
+  kafka-k8s:
+    charm: "cs:~charmed-osm/kafka-k8s"
+    channel: "stable"
+    scale: 1
+    series: kubernetes
+    storage:
+      database: 100M
+    annotations:
+      gui-x: 0
+      gui-y: 250
+  mongodb-k8s:
+    charm: "cs:~charmed-osm/mongodb-k8s"
+    channel: "stable"
+    scale: 1
+    series: kubernetes
+    storage:
+      database: 50M
+    options:
+      replica-set: rs0
+      namespace: osm
+      enable-sidecar: true
+    annotations:
+      gui-x: 0
+      gui-y: 0
+  nbi:
+    charm: "cs:~charmed-osm/nbi-12"
+    scale: 1
+    series: kubernetes
+    options:
+      database_commonkey: osm
+      auth_backend: keystone
+      log_level: DEBUG
+    annotations:
+      gui-x: 0
+      gui-y: -250
+  ro:
+    charm: "cs:~charmed-osm/ro-4"
+    scale: 1
+    series: kubernetes
+    options:
+      log_level: DEBUG
+    annotations:
+      gui-x: -300
+      gui-y: 250
+  ng-ui:
+    charm: "cs:~charmed-osm/ng-ui-21"
+    scale: 1
+    series: kubernetes
+    annotations:
+      gui-x: 600
+      gui-y: 0
+  lcm:
+    charm: "cs:~charmed-osm/lcm-8"
+    scale: 1
+    series: kubernetes
+    options:
+      database_commonkey: osm
+      log_level: DEBUG
+    annotations:
+      gui-x: -300
+      gui-y: 0
+  mon:
+    charm: "cs:~charmed-osm/mon-5"
+    scale: 1
+    series: kubernetes
+    options:
+      database_commonkey: osm
+      log_level: DEBUG
+      keystone_enabled: true
+    annotations:
+      gui-x: 300
+      gui-y: 0
+  pol:
+    charm: "cs:~charmed-osm/pol-4"
+    scale: 1
+    series: kubernetes
+    options:
+      log_level: DEBUG
+    annotations:
+      gui-x: -300
+      gui-y: 500
+  pla:
+    charm: "cs:~charmed-osm/pla-9"
+    scale: 1
+    series: kubernetes
+    options:
+      log_level: DEBUG
+    annotations:
+      gui-x: 600
+      gui-y: -250
+  prometheus:
+    charm: "cs:~charmed-osm/prometheus-4"
+    scale: 1
+    series: kubernetes
+    storage:
+      data: 50M
+    options:
+      default-target: "mon:8000"
+    annotations:
+      gui-x: 300
+      gui-y: 250
+  grafana:
+    charm: "cs:~charmed-osm/grafana-4"
+    scale: 1
+    series: kubernetes
+    annotations:
+      gui-x: 300
+      gui-y: 500
+  keystone:
+    charm: "cs:~charmed-osm/keystone-9"
+    scale: 1
+    series: kubernetes
+    annotations:
+      gui-x: 300
+      gui-y: -250
+relations:
+  - - grafana:prometheus
+    - prometheus:prometheus
+  - - kafka-k8s:zookeeper
+    - zookeeper-k8s:zookeeper
+  - - keystone:db
+    - mariadb-k8s:mysql
+  - - lcm:kafka
+    - kafka-k8s:kafka
+  - - lcm:mongodb
+    - mongodb-k8s:mongo
+  - - ro:ro
+    - lcm:ro
+  - - ro:kafka
+    - kafka-k8s:kafka
+  - - ro:mongodb
+    - mongodb-k8s:mongo
+  - - pol:kafka
+    - kafka-k8s:kafka
+  - - pol:mongodb
+    - mongodb-k8s:mongo
+  - - mon:mongodb
+    - mongodb-k8s:mongo
+  - - mon:kafka
+    - kafka-k8s:kafka
+  - - pla:kafka
+    - kafka-k8s:kafka
+  - - pla:mongodb
+    - mongodb-k8s:mongo
+  - - nbi:mongodb
+    - mongodb-k8s:mongo
+  - - nbi:kafka
+    - kafka-k8s:kafka
+  - - nbi:prometheus
+    - prometheus:prometheus
+  - - nbi:keystone
+    - keystone:keystone
+  - - mon:prometheus
+    - prometheus:prometheus
+  - - ng-ui:nbi
+    - nbi:nbi
+  - - mon:keystone
+    - keystone:keystone
+  - - mariadb-k8s:mysql
+    - pol:mysql

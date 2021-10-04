@@ -1,0 +1,72 @@
+# Copyright 2020 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: legal@canonical.com
+#
+# To get in touch with the maintainers, please contact:
+# osm-charmers@lists.launchpad.net
+##
+
+options:
+  enable_ng_ro:
+    description: Enable NG-RO
+    type: boolean
+    default: true
+  database_commonkey:
+    description: Database COMMON KEY
+    type: string
+    default: osm
+  mongodb_uri:
+    type: string
+    description: MongoDB URI (external database)
+  log_level:
+    description: "Log Level"
+    type: string
+    default: "INFO"
+  mysql_host:
+    type: string
+    description: MySQL Host (external database)
+  mysql_port:
+    type: int
+    description: MySQL Port (external database)
+  mysql_user:
+    type: string
+    description: MySQL User (external database)
+  mysql_password:
+    type: string
+    description: MySQL Password (external database)
+  mysql_root_password:
+    type: string
+    description: MySQL Root Password (external database)
+  vim_database:
+    type: string
+    description: "The database name."
+    default: "mano_vim_db"
+  ro_database:
+    type: string
+    description: "The database name."
+    default: "mano_db"
+  openmano_tenant:
+    type: string
+    description: "Openmano Tenant"
+    default: "osm"
+  certificates:
+    type: string
+    description: |
+      comma-separated list of <name>:<content> certificates.
+      Where:
+        name: name of the file for the certificate
+        content: base64 content of the certificate
+      The path for the files is /certs.

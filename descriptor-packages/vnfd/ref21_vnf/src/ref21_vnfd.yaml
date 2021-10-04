@@ -1,0 +1,34 @@
+vnfd-catalog:
+    vnfd:
+    -   connection-point:
+        -   name: mgmt
+
+        -   name: data
+
+        description: A simple VNF descriptor w/ one VDU
+        id: Ref_Vnf_21
+        name: Ref_Vnf_21
+        short-name: Ref_Vnf_21
+        mgmt-interface:
+            cp: mgmt
+        vdu:
+        -   interface:
+            -   name: iface50
+                type: EXTERNAL
+                virtual-interface:
+                    type: PARAVIRT
+                external-connection-point-ref: mgmt
+            -   name: iface51
+                type: EXTERNAL
+                virtual-interface:
+                    type: PARAVIRT
+                external-connection-point-ref: data
+            id: ref_vm21
+            image: ref_vm21.qcow2
+            name: Ref_VM_5
+            vm-flavor:
+                memory-mb: '1024'
+                storage-gb: '16'
+                vcpu-count: '1'
+        vendor: ETSI
+        version: '1.0'

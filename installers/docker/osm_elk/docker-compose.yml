@@ -1,0 +1,62 @@
+version: '3'
+
+volumes:
+  elasticsearch_data:
+
+services:
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-6.4.2}
+    hostname: "{{.Node.Hostname}}-filebeat"
+    user: root
+    networks:
+      - elk
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers/:/var/lib/docker/containers/:ro
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+    command: ["--strict.perms=false"]
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:${ELASTIC_VERSION:-6.4.2}
+    user: root
+    deploy:
+      mode: global
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - ./metricbeat.yml:/usr/share/metricbeat/metricbeat.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: --strict.perms=false -e -c /usr/share/metricbeat/metricbeat.yml -system.hostfs=/hostfs # -e flag to log to stderr and disable syslog/file output
+    networks:
+      - elk
+    depends_on: ['elasticsearch', 'kibana']
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:${ELASTIC_VERSION:-6.4.2}
+    volumes:
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:${ELASTIC_VERSION:-6.4.2}
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+networks:
+  elk:
+    external:
+      name: ${OSM_NETWORK:-netosm}

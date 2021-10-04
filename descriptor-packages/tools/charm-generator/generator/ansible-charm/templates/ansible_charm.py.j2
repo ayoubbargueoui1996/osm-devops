@@ -1,0 +1,91 @@
+{#-
+# Copyright 2019 Whitestack, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: esousa@whitestack.com or glavado@whitestack.com
+-#}
+{%- if license is defined -%}
+# Copyright {{ license.year }} {{ license.company }}
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# For those usages not covered by the Apache License, Version 2.0 please
+# contact: {{ license.email }}
+{%- endif %}
+
+
+import sys
+import traceback
+
+from charmhelpers.core.hookenv import (
+    action_get,
+    action_fail,
+    action_set,
+    config,
+    status_set,
+)
+
+import charms.libansible
+
+from charms.reactive import (
+    remove_state as remove_flag,
+    set_state as set_flag,
+    when,
+)
+
+
+# Sets the status of the charm to show in OSM: configured
+@when('config.changed')
+def config_changed():
+    set_flag('{{ charm_name }}.configured')
+    status_set('active', 'ready!')
+    return
+
+
+# Edits ansible config files and executes ansible-playbook
+{% for pb in playbooks -%}
+@when('{{ charm_name }}.configured')
+@when('actions.{{ pb.action_name }}')
+def {{ pb.function_name }}():
+    try:
+        dict_vars = {}
+
+        # edit the following snippet to add your parameters
+        # Note: don't forget to edit actions.yaml to add the parameters
+        # param_variable = action_get('param-name')
+        # dict_vars['param-name'] = param_variable}
+
+        result = charms.libansible.execute_playbook('{{ pb.file }}', dict_vars)
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        err = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        action_fail('{{ pb.action_name }} failed: ' + str(err))
+    else:
+        action_set({'output': result})
+    finally:
+        remove_flag('actions.{{ pb.action_name }}')
+
+
+{% endfor -%}

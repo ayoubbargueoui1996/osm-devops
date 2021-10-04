@@ -1,0 +1,103 @@
+#
+#   Copyright 2016 RIFT.io Inc
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#
+
+nsd-catalog:
+    nsd:
+     -  id: rift_ping_pong_ns
+        logo: rift_logo.png
+        name: ping_pong_ns
+        short-name: ping_pong_ns
+        vendor: RIFT.io
+        version: '1.1'
+        description: RIFT.io sample ping pong network service
+        constituent-vnfd:
+        -   member-vnf-index: '1'
+            vnfd-id-ref: rift_ping_vnf
+        -   member-vnf-index: '2'
+            vnfd-id-ref: rift_pong_vnf
+        initial-service-primitive:
+        -   name: start traffic
+            parameter:
+            -   name: port
+                value: 5555
+            -   name: ssh-username
+                value: fedora
+            -   name: ssh-password
+                value: fedora
+            seq: '1'
+            user-defined-script: start_traffic.py
+        input-parameter-xpath:
+        -   xpath: /nsd:nsd-catalog/nsd:nsd/nsd:vendor
+        ip-profiles:
+        -   description: Inter VNF Link
+            ip-profile-params:
+                gateway-address: 31.31.31.210
+                ip-version: ipv4
+                subnet-address: 31.31.31.0/24
+                dhcp-params:
+                  count: 200
+                  start-address: 31.31.31.2
+            name: InterVNFLink
+        placement-groups:
+        -   member-vnfd:
+            -   member-vnf-index-ref: '1'
+                vnfd-id-ref: rift_ping_vnf
+            -   member-vnf-index-ref: '2'
+                vnfd-id-ref: rift_pong_vnf
+            name: Orcus
+            requirement: Place this VM on the Kuiper belt object Orcus
+            strategy: COLOCATION
+        -   member-vnfd:
+            -   member-vnf-index-ref: '1'
+                vnfd-id-ref: rift_ping_vnf
+            -   member-vnf-index-ref: '2'
+                vnfd-id-ref: rift_pong_vnf
+            name: Quaoar
+            requirement: Place this VM on the Kuiper belt object Quaoar
+            strategy: COLOCATION
+        vld:
+        -   id: mgmt_vl
+            description: Management VL
+            name: mgmt_vl
+            short-name: mgmt_vl
+            vim-network-name: mgmt
+            type: ELAN
+            vendor: RIFT.io
+            version: '1.0'
+            mgmt-network: 'true'
+            vnfd-connection-point-ref:
+            -   member-vnf-index-ref: '1'
+                vnfd-connection-point-ref: ping_vnfd/cp0
+                vnfd-id-ref: rift_ping_vnf
+            -   member-vnf-index-ref: '2'
+                vnfd-connection-point-ref: pong_vnfd/cp0
+                vnfd-id-ref: rift_pong_vnf
+        -   id: ping_pong_vl1
+            description: Data VL
+            ip-profile-ref: InterVNFLink
+            name: data_vl
+            short-name: data_vl
+            type: ELAN
+            vendor: RIFT.io
+            version: '1.0'
+            vnfd-connection-point-ref:
+            -   member-vnf-index-ref: '1'
+                vnfd-connection-point-ref: ping_vnfd/cp1
+                vnfd-id-ref: rift_ping_vnf
+            -   member-vnf-index-ref: '2'
+                vnfd-connection-point-ref: pong_vnfd/cp1
+                vnfd-id-ref: rift_pong_vnf
